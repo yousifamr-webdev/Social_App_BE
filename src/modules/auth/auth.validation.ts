@@ -37,3 +37,27 @@ export const verifyEmailResendOTPSchema = {
     email: commonValidationFields.email,
   }),
 };
+
+export const forgetPasswordOTPSchema = {
+  body: verifyEmailResendOTPSchema.body,
+};
+
+export const resendForgetPasswordVerificationOTPSchema = {
+  body: verifyEmailResendOTPSchema.body,
+};
+
+export const verifyForgetPasswordSchema = {
+  body: verifyEmailSchema.body,
+};
+
+export const resetPasswordSchema = {
+  body: verifyEmailSchema.body.extend({
+    password: commonValidationFields.password,
+  }),
+};
+
+export const singupWithGmailSchema = {
+  body: z.object({
+    idToken: z.string(),
+  }),
+};

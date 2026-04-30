@@ -43,7 +43,7 @@ export function authentication(expectedTokenType = TokenEnum.Access) {
         if (!user) {
             throw new UnauthorizedException("User not found.");
         }
-        if (new Date(verifiedToken.iat * 100) < user.changeCreditTime) {
+        if (new Date(verifiedToken.iat * 1000) < user.changeCreditTime) {
             throw new UnauthorizedException("You need to login.");
         }
         req.user = user;

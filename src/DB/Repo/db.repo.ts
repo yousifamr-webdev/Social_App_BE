@@ -5,7 +5,9 @@ import {
   type ProjectionType,
   type QueryFilter,
   type QueryOptions,
+  type UpdateQuery,
 } from "mongoose";
+import { type UpdateOptions } from "mongodb";
 
 abstract class DBRepo<T> {
   constructor(protected Model: Model<T>) {}
@@ -33,17 +35,15 @@ abstract class DBRepo<T> {
   }
 
   public async updateOne({
-    model,
     filter = {},
     update,
     options,
   }: {
-    model: any;
-    filter: any;
-    update: any;
-    options?: QueryOptions<T>;
+    filter: QueryFilter<T>;
+    update: UpdateQuery<T>;
+    options?: UpdateOptions;
   }) {
-    return await model.updateOne(filter, { ...update, $inc: { __v: 1 } });
+    return await this.Model.updateOne(filter, { ...update, $inc: { __v: 1 } });
   }
 
   public async findById({

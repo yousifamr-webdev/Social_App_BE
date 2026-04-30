@@ -6,6 +6,7 @@ import { PORT } from "./config/config.service.js";
 import testDBConnection from "./DB/connection.js";
 import { testRedisConnection } from "./DB/Redis/redis.connection.js";
 import userController from "./modules/user/user.controller.js";
+import cors from 'cors'
 
 async function bootstrap() {
   const app: express.Express = express();
@@ -15,7 +16,8 @@ async function bootstrap() {
   await testRedisConnection();
 
   app.use(express.json());
-
+  app.use(cors());
+  
   app.get(
     "/",
     (

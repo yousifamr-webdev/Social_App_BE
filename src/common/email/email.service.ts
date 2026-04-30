@@ -129,6 +129,17 @@ class MailService {
       );
     }
   }
+
+  public async sendForgetPassword(email: string) {
+    await this._handleOtp({
+      email,
+      otpType: OTPEnum.forgetPassword,
+      subject: "Reset your password",
+      enforceCooldown: true,
+    });
+  }
+
+ 
 }
 
 export default new MailService();

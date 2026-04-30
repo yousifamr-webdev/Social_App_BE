@@ -81,5 +81,13 @@ class MailService {
             throw new BadRequestException(`Too many attempts. Try again in ${blockTTL}s.`);
         }
     }
+    async sendForgetPassword(email) {
+        await this._handleOtp({
+            email,
+            otpType: OTPEnum.forgetPassword,
+            subject: "Reset your password",
+            enforceCooldown: true,
+        });
+    }
 }
 export default new MailService();
