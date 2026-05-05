@@ -1,4 +1,4 @@
-import type { OTPEnum } from "../../common/enums/otp.enum.js";
+import type { OTPEnum } from "../../common/enums/otp.enums.js";
 import { client } from "./redis.connection.js";
 
 class RedisService {
@@ -39,7 +39,7 @@ class RedisService {
     });
   }
 
-  async get(key: string):Promise<string | number | null> {
+  async get(key: string): Promise<string | number | null> {
     return await client.get(key);
   }
 

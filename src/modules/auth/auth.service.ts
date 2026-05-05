@@ -26,7 +26,7 @@ import type {
 import CryptoJS from "crypto-js";
 import MailService from "../../common/email/email.service.js";
 import RedisService from "../../DB/Redis/redis.service.js";
-import { OTPEnum } from "../../common/enums/otp.enum.js";
+import { OTPEnum } from "../../common/enums/otp.enums.js";
 import { ProviderEnum } from "../../common/enums/user.enums.js";
 
 class AuthService {

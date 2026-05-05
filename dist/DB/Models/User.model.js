@@ -18,18 +18,22 @@ const userSchema = new Schema({
         default: ProviderEnum.System,
     },
     confirmEmail: { type: Boolean, default: false },
+    profilePic: String,
     coverPics: [String],
     age: Number,
     phone: String,
     gender: { type: Number, enum: GenderEnum, default: GenderEnum.Male },
     role: { type: Number, enum: RoleEnum, default: RoleEnum.User },
     changeCreditTime: Date,
+    deletedAt: Date,
     twoStepVerification: { type: Boolean, default: false },
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    strictQuery: true,
+});
 userSchema.index({ confirmEmailExpires: 1 }, { expireAfterSeconds: 0 });
 userSchema.pre("save", async function () {
     this.wasNew = this.isNew;
-    console.log("PRE SAVE:", this);
     if (this.isModified("password")) {
         this.password = await generateHash({
             plainText: this.password,
@@ -48,6 +52,12 @@ userSchema.post("save", async function () {
     }
     catch (err) {
         console.log(err);
+    }
+});
+userSchema.pre(["findOne", "find"], function () {
+    const query = this.getQuery();
+    if (!query.getSoftDelete) {
+        this.setQuery({ ...query, deletedAt: { $exists: false } });
     }
 });
 const userModel = model("User", userSchema);

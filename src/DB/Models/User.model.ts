@@ -14,12 +14,14 @@ export interface IUser {
   password: string;
   provider: ProviderEnum;
   confirmEmail: boolean;
+  profilePic: string;
   coverPics: string[];
   age: number;
   phone: string;
   gender: GenderEnum;
   role: RoleEnum;
   changeCreditTime: Date;
+  deletedAt: Date;
   twoStepVerification: Boolean;
 }
 
@@ -41,24 +43,28 @@ const userSchema = new Schema<IUser>(
       default: ProviderEnum.System,
     },
     confirmEmail: { type: Boolean, default: false },
+    profilePic: String,
     coverPics: [String],
     age: Number,
     phone: String,
     gender: { type: Number, enum: GenderEnum, default: GenderEnum.Male },
     role: { type: Number, enum: RoleEnum, default: RoleEnum.User },
     changeCreditTime: Date,
+    deletedAt: Date,
     twoStepVerification: { type: Boolean, default: false },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    strictQuery: true,
+  },
 );
 
 userSchema.index({ confirmEmailExpires: 1 }, { expireAfterSeconds: 0 });
 
-
 userSchema.pre("save", async function (this: IHUser & { wasNew: boolean }) {
   this.wasNew = this.isNew;
 
-  console.log("PRE SAVE:", this);
+  
 
   if (this.isModified("password")) {
     this.password = await generateHash({
@@ -80,6 +86,14 @@ userSchema.post("save", async function (this: IHUser & { wasNew: boolean }) {
     }
   } catch (err) {
     console.log(err);
+  }
+});
+
+userSchema.pre(["findOne", "find"], function () {
+  const query = this.getQuery();
+
+  if (!query.getSoftDelete) {
+    this.setQuery({ ...query, deletedAt: { $exists: false } });
   }
 });
 

@@ -1,5 +1,5 @@
 import RedisService from "../../DB/Redis/redis.service.js";
-import { OTPEnum } from "../enums/otp.enum.js";
+import { OTPEnum } from "../enums/otp.enums.js";
 import { BadRequestException } from "../exceptions/domain.exceptions.js";
 import { generateHash } from "../security/hash.js";
 import { generateOTP } from "../security/otp.js";

@@ -1,8 +1,10 @@
 import redisService from "../../DB/Redis/redis.service.js";
 import userRepo from "../../DB/Repo/user.repo.js";
+import s3bucketService from "../../common/S3Bucket/s3bucket.service.js";
 class UserService {
     _userRepo = userRepo;
     _redisMethods = redisService;
+    _s3BucketService = s3bucketService;
     async logout(req) {
         const userId = req.user._id;
         const tokenData = req.tokenPayload;
@@ -24,6 +26,43 @@ class UserService {
             });
         }
         return { msg: "Logout Successful." };
+    }
+    async uploadProfilePic(file, user) {
+        const { key, url } = await this._s3BucketService.createPreSignedUploadFileUrl({
+            file,
+            path: `user/${user._id}/profilePic`,
+        });
+        if (user.profilePic) {
+            await this._s3BucketService.deleteFile(user.profilePic);
+        }
+        user.profilePic = key;
+        await user.save();
+        return { key, url };
+    }
+    async uploadCoverPics(files, user) {
+        const keys = await this._s3BucketService.uploadFiles({
+            files,
+            path: `user/${user._id}/coverPics`,
+        });
+        if (user.coverPics.length) {
+            Promise.all(user.coverPics.map((coverPic) => {
+                return this._s3BucketService.deleteFile(coverPic);
+            }));
+        }
+        user.coverPics = keys;
+        await user.save();
+        return keys;
+    }
+    async deleteUser(user) {
+        await user.deleteOne();
+        if (user.profilePic) {
+            await this._s3BucketService.deleteFile(user.profilePic);
+        }
+        if (user.coverPics.length) {
+            Promise.all(user.coverPics.map((coverPic) => {
+                return this._s3BucketService.deleteFile(coverPic);
+            }));
+        }
     }
 }
 export default new UserService();
