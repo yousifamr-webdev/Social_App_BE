@@ -10,6 +10,9 @@ import cors from "cors";
 import s3bucketService from "./common/S3Bucket/s3bucket.service.js";
 import { promisify } from "util";
 import { pipeline } from "node:stream";
+import successResponse from "./common/response/success.response.js";
+import postController from "./modules/post/post.controller.js";
+import commentController from "./modules/comment/comment.controller.js";
 
 async function bootstrap() {
   const app: express.Express = express();
@@ -34,6 +37,8 @@ async function bootstrap() {
 
   app.use("/auth", authController);
   app.use("/user", userController);
+  app.use("/post", postController);
+    app.use("/comment", commentController);
 
   app.get("/uploads/*path", async (req, res, next) => {
     const { path } = req.params;
@@ -52,6 +57,20 @@ async function bootstrap() {
     }
 
     await pipelinePromise(result.Body as NodeJS.ReadableStream, res);
+  });
+
+  app.get("/pre-signed-upload/*path", async (req, res, next) => {
+    const { path } = req.params;
+    const { filename, download } = req.query;
+
+    const Key = path.join("/");
+    const result = await s3bucketService.createPreSignedGetFile({
+      Key,
+      filename: (filename as string) || (path[path.length - 1] as string),
+      download: download as string,
+    });
+
+    return successResponse({ res, data: result });
   });
 
   app.use(

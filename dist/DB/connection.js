@@ -1,8 +1,8 @@
 import { connect } from "mongoose";
-import { DB_URI_LOCAL } from "../config/config.service.js";
+import { DB_URI_ATLAS, DB_URI_LOCAL } from "../config/config.service.js";
 async function testDBConnection() {
     try {
-        await connect(DB_URI_LOCAL);
+        await connect(DB_URI_ATLAS);
         console.log("DB connected successfully.");
     }
     catch (err) {

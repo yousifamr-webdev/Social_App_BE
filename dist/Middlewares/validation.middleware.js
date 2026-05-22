@@ -1,29 +1,39 @@
 import { BadRequestException } from "../common/exceptions/domain.exceptions.js";
 import { z } from "zod";
 import { GenderEnum } from "../common/enums/user.enums.js";
-export function validation(validationSchema) {
+import { Types } from "mongoose";
+export function validation(validationSchema, filesInBody = false) {
     return (req, res, next) => {
         const validationErrs = [];
         for (const key of Object.keys(validationSchema)) {
             if (validationSchema[key] == undefined) {
                 continue;
             }
+            if (key == "body" && filesInBody == true) {
+                req.body.files = req.files;
+            }
             const validationResult = validationSchema[key].safeParse(req[key]);
             if (!validationResult.success) {
                 validationErrs.push(...validationResult.error.issues.map((ele) => {
-                    return { path: ele.path, message: ele.message };
+                    return {
+                        path: ele.path,
+                        message: ele.message,
+                    };
                 }));
             }
-            if (validationErrs.length > 0) {
-                throw new BadRequestException("Invalid Validation.", {
-                    validationErrs,
-                });
-            }
-            next();
         }
+        if (validationErrs.length > 0) {
+            return next(new BadRequestException("Invalid Validation.", {
+                validationErrs,
+            }));
+        }
+        return next();
     };
 }
 export const commonValidationFields = {
+    id: z.string().refine((value) => {
+        return Types.ObjectId.isValid(value);
+    }, "Invalid ObjectId"),
     userName: z
         .string()
         .min(3, { error: "username can not be less than 3 chars." })

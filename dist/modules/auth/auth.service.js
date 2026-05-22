@@ -8,6 +8,7 @@ import UserRepo from "../../DB/Repo/user.repo.js";
 import CryptoJS from "crypto-js";
 import MailService from "../../common/email/email.service.js";
 import RedisService from "../../DB/Redis/redis.service.js";
+import NotificationService from "../../common/Notification/notification.service.js";
 import { OTPEnum } from "../../common/enums/otp.enums.js";
 import { ProviderEnum } from "../../common/enums/user.enums.js";
 class AuthService {
@@ -15,6 +16,7 @@ class AuthService {
     _tokenService = tokenService;
     _mailService = MailService;
     _redisMethods = RedisService;
+    _notificationService = NotificationService;
     async _verifyGoogleToken(idToken) {
         const client = new OAuth2Client();
         const ticket = await client.verifyIdToken({
@@ -74,6 +76,17 @@ class AuthService {
         const bytes = CryptoJS.AES.decrypt(user.phone, ENCRYPTION_KEY);
         const originalPhone = bytes.toString(CryptoJS.enc.Utf8);
         user.phone = originalPhone;
+        if (bodyData.FCM) {
+            await this._redisMethods.addFCMTokenToSet(user._id, bodyData.FCM);
+            const tokens = await this._redisMethods.getMemberFCMToken(user._id);
+            await this._notificationService.sendMultipleNotifications({
+                tokens,
+                data: {
+                    title: "User Logged In Succesfully.",
+                    body: `Logged in at ${new Date()}`,
+                },
+            });
+        }
         const { access_token, refresh_token } = this._tokenService.generateAccessAndRefreshTokens({
             role: user.role,
             sub: String(user._id),

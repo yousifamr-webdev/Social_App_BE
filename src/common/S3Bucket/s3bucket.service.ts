@@ -1,6 +1,8 @@
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   ObjectCannedACL,
   PutObjectCommand,
   S3Client,
@@ -28,17 +30,18 @@ class S3BucketService {
   });
 
   async createPreSignedUploadFileUrl({
-    file,
+    originalname,
+    contentType,
     path,
   }: {
-    file: Express.Multer.File;
+    originalname: string;
+    contentType: string;
     path: string;
   }) {
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
-      Key: `${APPLICATION_NAME}/${path}/${randomUUID()}_${file.originalname}`,
-      Body: file.buffer,
-      ContentType: file.mimetype,
+      Key: `${APPLICATION_NAME}/${path}/${randomUUID()}_${originalname}`,
+      ContentType: contentType,
       ACL: ObjectCannedACL.private,
     });
 
@@ -117,7 +120,7 @@ class S3BucketService {
     return keys;
   }
 
-  async getFile(Key : string) {
+  async getFile(Key: string) {
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key,
@@ -126,15 +129,53 @@ class S3BucketService {
     return await this._client.send(command);
   }
 
-  async deleteFile(Key:string) {
-  const command = new DeleteObjectCommand({
-    Bucket: BUCKET_NAME, Key
-  })
-    
-    return await this._client.send(command)
-    
-}
-  
+  async createPreSignedGetFile({
+    Key,
+    filename,
+    download,
+  }: {
+    Key: string;
+    filename?: string;
+    download?: string;
+  }) {
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key,
+      ResponseContentDisposition:
+        download == "true" ? `attachment; filename=${filename}` : undefined,
+    });
+
+    return await getSignedUrl(this._client, command, { expiresIn: 3600 });
+  }
+
+  async deleteFile(Key: string) {
+    const command = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key,
+    });
+
+    return await this._client.send(command);
+  }
+
+  async deleteFiles(Keys: { Key: string }[]) {
+    const command = new DeleteObjectsCommand({
+      Bucket: BUCKET_NAME,
+      Delete: { Objects: Keys },
+    });
+
+    return await this._client.send(command);
+  }
+
+  async listFolderKeys(Prefix: string) {
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: `${APPLICATION_NAME}/${Prefix}`,
+    });
+
+    return await this._client.send(command);
+  }
+
+ 
 }
 
 export default new S3BucketService();

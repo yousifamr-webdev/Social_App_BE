@@ -1,3 +1,4 @@
+import type { Types } from "mongoose";
 import type { OTPEnum } from "../../common/enums/otp.enums.js";
 import { client } from "./redis.connection.js";
 
@@ -97,6 +98,18 @@ class RedisService {
     }
 
     throw new Error("Invalid expiration type. Use 'EX' or 'PX'");
+  }
+
+  getFCMKey(userId: Types.ObjectId | string) {
+    return `FCM::${userId}`;
+  }
+
+  async addFCMTokenToSet(userId: Types.ObjectId | string, fcmToken: string) {
+    return await client.sAdd(this.getFCMKey(userId), fcmToken);
+  }
+
+  async getMemberFCMToken(userId: Types.ObjectId | string) {
+    return await client.sMembers(this.getFCMKey(userId));
   }
 }
 

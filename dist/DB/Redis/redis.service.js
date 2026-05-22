@@ -58,5 +58,14 @@ class RedisService {
         }
         throw new Error("Invalid expiration type. Use 'EX' or 'PX'");
     }
+    getFCMKey(userId) {
+        return `FCM::${userId}`;
+    }
+    async addFCMTokenToSet(userId, fcmToken) {
+        return await client.sAdd(this.getFCMKey(userId), fcmToken);
+    }
+    async getMemberFCMToken(userId) {
+        return await client.sMembers(this.getFCMKey(userId));
+    }
 }
 export default new RedisService();

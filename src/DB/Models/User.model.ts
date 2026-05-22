@@ -1,4 +1,4 @@
-import { Schema, model, connect, type HydratedDocument } from "mongoose";
+import { Schema, model, connect, type HydratedDocument, Types } from "mongoose";
 import {
   GenderEnum,
   ProviderEnum,
@@ -23,6 +23,7 @@ export interface IUser {
   changeCreditTime: Date;
   deletedAt: Date;
   twoStepVerification: Boolean;
+  friends: Types.ObjectId[];
 }
 
 export type IHUser = HydratedDocument<IUser>;
@@ -52,6 +53,7 @@ const userSchema = new Schema<IUser>(
     changeCreditTime: Date,
     deletedAt: Date,
     twoStepVerification: { type: Boolean, default: false },
+    friends: [{ type: Types.ObjectId, ref: "User" }],
   },
   {
     timestamps: true,
@@ -63,8 +65,6 @@ userSchema.index({ confirmEmailExpires: 1 }, { expireAfterSeconds: 0 });
 
 userSchema.pre("save", async function (this: IHUser & { wasNew: boolean }) {
   this.wasNew = this.isNew;
-
-  
 
   if (this.isModified("password")) {
     this.password = await generateHash({

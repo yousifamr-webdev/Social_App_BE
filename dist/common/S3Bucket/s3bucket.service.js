@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, ObjectCannedACL, PutObjectCommand, S3Client, } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, ObjectCannedACL, PutObjectCommand, S3Client, } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 import { ACCESS_KEY_ID, APPLICATION_NAME, BUCKET_NAME, REGION, SECRET_ACCESS_KEY, } from "../../config/config.service.js";
 import { Upload } from "@aws-sdk/lib-storage";
@@ -13,12 +13,11 @@ class S3BucketService {
             secretAccessKey: SECRET_ACCESS_KEY,
         },
     });
-    async createPreSignedUploadFileUrl({ file, path, }) {
+    async createPreSignedUploadFileUrl({ originalname, contentType, path, }) {
         const command = new PutObjectCommand({
             Bucket: BUCKET_NAME,
-            Key: `${APPLICATION_NAME}/${path}/${randomUUID()}_${file.originalname}`,
-            Body: file.buffer,
-            ContentType: file.mimetype,
+            Key: `${APPLICATION_NAME}/${path}/${randomUUID()}_${originalname}`,
+            ContentType: contentType,
             ACL: ObjectCannedACL.private,
         });
         const url = await getSignedUrl(this._client, command, { expiresIn: 3600 });
@@ -69,9 +68,32 @@ class S3BucketService {
         });
         return await this._client.send(command);
     }
+    async createPreSignedGetFile({ Key, filename, download, }) {
+        const command = new GetObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key,
+            ResponseContentDisposition: download == "true" ? `attachment; filename=${filename}` : undefined,
+        });
+        return await getSignedUrl(this._client, command, { expiresIn: 3600 });
+    }
     async deleteFile(Key) {
         const command = new DeleteObjectCommand({
-            Bucket: BUCKET_NAME, Key
+            Bucket: BUCKET_NAME,
+            Key,
+        });
+        return await this._client.send(command);
+    }
+    async deleteFiles(Keys) {
+        const command = new DeleteObjectsCommand({
+            Bucket: BUCKET_NAME,
+            Delete: { Objects: Keys },
+        });
+        return await this._client.send(command);
+    }
+    async listFolderKeys(Prefix) {
+        const command = new ListObjectsV2Command({
+            Bucket: BUCKET_NAME,
+            Prefix: `${APPLICATION_NAME}/${Prefix}`,
         });
         return await this._client.send(command);
     }

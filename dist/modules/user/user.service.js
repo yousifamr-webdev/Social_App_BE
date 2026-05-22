@@ -1,6 +1,7 @@
 import redisService from "../../DB/Redis/redis.service.js";
 import userRepo from "../../DB/Repo/user.repo.js";
 import s3bucketService from "../../common/S3Bucket/s3bucket.service.js";
+import { BadRequestException } from "./../../common/exceptions/domain.exceptions.js";
 class UserService {
     _userRepo = userRepo;
     _redisMethods = redisService;
@@ -27,16 +28,15 @@ class UserService {
         }
         return { msg: "Logout Successful." };
     }
-    async uploadProfilePic(file, user) {
+    async uploadProfilePic(bodyData, user) {
         const { key, url } = await this._s3BucketService.createPreSignedUploadFileUrl({
-            file,
+            originalname: bodyData.originalname,
+            contentType: bodyData.contentType,
             path: `user/${user._id}/profilePic`,
         });
         if (user.profilePic) {
             await this._s3BucketService.deleteFile(user.profilePic);
         }
-        user.profilePic = key;
-        await user.save();
         return { key, url };
     }
     async uploadCoverPics(files, user) {
@@ -54,15 +54,60 @@ class UserService {
         return keys;
     }
     async deleteUser(user) {
-        await user.deleteOne();
+        const deleteUser = await user.deleteOne();
+        if (deleteUser.deletedCount !== 1) {
+            return new BadRequestException("Failed to delete user.");
+        }
+        const response = await this._s3BucketService.listFolderKeys(`user/${user._id}`);
+        const Keys = response.Contents?.map((file) => {
+            return { Key: file.Key };
+        });
+        await this._s3BucketService.deleteFiles(Keys);
+    }
+    async deleteProfilePic(user) {
         if (user.profilePic) {
             await this._s3BucketService.deleteFile(user.profilePic);
         }
-        if (user.coverPics.length) {
-            Promise.all(user.coverPics.map((coverPic) => {
+        await this._userRepo.updateOne({
+            filter: { _id: user._id },
+            update: { $unset: { profilePic: 1 } },
+        });
+        return { msg: "Your profile picture was deleted successfully." };
+    }
+    async updateCoverPics(bodyData, user, coverPics) {
+        const keys = coverPics
+            ? await this._s3BucketService.uploadFiles({
+                files: coverPics,
+                path: `user/${user._id}/coverPics`,
+            })
+            : [];
+        const userAfter = await this._userRepo.findOneAndUpdate({
+            filter: { _id: user._id },
+            update: [
+                {
+                    $set: {
+                        coverPics: {
+                            $setUnion: [
+                                {
+                                    $setDifference: ["$coverPics", bodyData.removePics || []],
+                                },
+                                keys || [],
+                            ],
+                        },
+                    },
+                },
+            ],
+            options: {
+                updatePipeline: true,
+                returnDocument: "after",
+            },
+        });
+        if (bodyData.removePics?.length) {
+            Promise.all(bodyData.removePics.map((coverPic) => {
                 return this._s3BucketService.deleteFile(coverPic);
             }));
         }
+        return userAfter?.coverPics;
     }
 }
 export default new UserService();

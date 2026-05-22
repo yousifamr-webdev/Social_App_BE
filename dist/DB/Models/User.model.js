@@ -1,4 +1,4 @@
-import { Schema, model, connect } from "mongoose";
+import { Schema, model, connect, Types } from "mongoose";
 import { GenderEnum, ProviderEnum, RoleEnum, } from "../../common/enums/user.enums.js";
 import MailService from "../../common/email/email.service.js";
 import { encryptValue } from "../../common/security/encrypt.js";
@@ -27,6 +27,7 @@ const userSchema = new Schema({
     changeCreditTime: Date,
     deletedAt: Date,
     twoStepVerification: { type: Boolean, default: false },
+    friends: [{ type: Types.ObjectId, ref: "User" }],
 }, {
     timestamps: true,
     strictQuery: true,
