@@ -13,6 +13,12 @@ import { pipeline } from "node:stream";
 import successResponse from "./common/response/success.response.js";
 import postController from "./modules/post/post.controller.js";
 import commentController from "./modules/comment/comment.controller.js";
+import { GraphQLBoolean, GraphQLEnumType, GraphQLID, GraphQLInt, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, GraphQLString, } from "graphql";
+import { createHandler } from "graphql-http/lib/use/express";
+import { GenderEnum, ProviderEnum, RoleEnum, } from "./common/enums/user.enums.js";
+import userRepo from "./DB/Repo/user.repo.js";
+import schema from "./modules/gql/schema.gql.js";
+import { authentication } from "./Middlewares/authentication.middleware.js";
 async function bootstrap() {
     const app = express();
     const port = PORT;
@@ -23,6 +29,13 @@ async function bootstrap() {
     app.get("/", (req, res, next) => {
         res.status(200).json({ msg: "Landing page." });
     });
+    app.all("/graphql", authentication(), createHandler({
+        schema: schema,
+        context: (req) => ({
+            user: req.raw.user,
+            tokenPayload: req.raw.tokenPayload,
+        }),
+    }));
     app.use("/auth", authController);
     app.use("/user", userController);
     app.use("/post", postController);

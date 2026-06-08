@@ -1,4 +1,4 @@
-import { BadRequestException } from "../common/exceptions/domain.exceptions.js";
+import { BadRequestException, ForbiddenException, MapGQLError, } from "../common/exceptions/domain.exceptions.js";
 import { z } from "zod";
 import { GenderEnum } from "../common/enums/user.enums.js";
 import { Types } from "mongoose";
@@ -29,6 +29,17 @@ export function validation(validationSchema, filesInBody = false) {
         }
         return next();
     };
+}
+export function validationGQL(validationSchema, value) {
+    const validationResult = validationSchema.safeParse(value);
+    if (!validationResult.success) {
+        MapGQLError(new ForbiddenException("Validation Error.", validationResult.error.issues.map((ele) => {
+            return {
+                path: ele.path,
+                message: ele.message,
+            };
+        })));
+    }
 }
 export const commonValidationFields = {
     id: z.string().refine((value) => {
