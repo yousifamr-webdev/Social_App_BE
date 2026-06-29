@@ -33,6 +33,13 @@ import {
 import userRepo from "./DB/Repo/user.repo.js";
 import schema from "./modules/gql/schema.gql.js";
 import { authentication } from "./Middlewares/authentication.middleware.js";
+import { Server, type ExtendedError } from "socket.io";
+import tokenService from "./common/security/token.service.js";
+import type { SocketAuthType } from "./common/interfaces/express.interface.js";
+import z from "zod";
+import { validationRealtime } from "./Middlewares/validation.middleware.js";
+import realtimeGateway from "./modules/realtime/realtime.gateway.js";
+import chatController from "./modules/chat/chat.controller.js";
 
 async function bootstrap() {
   const app: express.Express = express();
@@ -70,6 +77,7 @@ async function bootstrap() {
   app.use("/auth", authController);
   app.use("/user", userController);
   app.use("/post", postController);
+  app.use("/chat", chatController);
   app.use("/comment", commentController);
 
   app.get("/uploads/*path", async (req, res, next) => {
@@ -118,9 +126,13 @@ async function bootstrap() {
 
   app.use(globalErrHandlingMiddleware);
 
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log("App running on port 3000.");
   });
+
+
+realtimeGateway.initializeIO(server)
+
 }
 
 export default bootstrap;

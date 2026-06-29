@@ -41,6 +41,17 @@ export function validationGQL(validationSchema, value) {
         })));
     }
 }
+export function validationRealtime(validationSchema, value) {
+    const validationResult = validationSchema.safeParse(value);
+    if (!validationResult.success) {
+        throw new ForbiddenException("Validation Error.", validationResult.error.issues.map((ele) => {
+            return {
+                path: ele.path,
+                message: ele.message,
+            };
+        }));
+    }
+}
 export const commonValidationFields = {
     id: z.string().refine((value) => {
         return Types.ObjectId.isValid(value);

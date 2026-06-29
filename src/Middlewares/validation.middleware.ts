@@ -70,6 +70,25 @@ export function validationGQL<T = any>(validationSchema: ZodType, value: T) {
   }
 }
 
+export function validationRealtime<T = any>(
+  validationSchema: ZodType,
+  value: T,
+) {
+  const validationResult = validationSchema!.safeParse(value);
+
+  if (!validationResult.success) {
+    throw new ForbiddenException(
+      "Validation Error.",
+      validationResult.error.issues.map((ele: any) => {
+        return {
+          path: ele.path,
+          message: ele.message,
+        };
+      }),
+    );
+  }
+}
+
 export const commonValidationFields = {
   id: z.string().refine((value) => {
     return Types.ObjectId.isValid(value);

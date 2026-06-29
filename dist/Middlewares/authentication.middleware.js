@@ -18,34 +18,7 @@ export function authentication(expectedTokenType = TokenEnum.Access) {
         if (!token) {
             throw new UnauthorizedException("You need to login first.");
         }
-        const decodedToken = tokenService.decodeToken(token);
-        if (!decodedToken || !decodedToken.aud) {
-            throw new UnauthorizedException("Invalid Token.");
-        }
-        const [userRole, tokenType] = decodedToken.aud;
-        if (Number(tokenType) !== expectedTokenType) {
-            throw new BadRequestException("Invalid token type.");
-        }
-        const { accessSignature, refreshSignature } = tokenService.getSignature(Number(userRole));
-        const verifiedToken = tokenService.verifyToken({
-            token: token,
-            signature: expectedTokenType == TokenEnum.Access
-                ? accessSignature
-                : refreshSignature,
-        });
-        if (await redisMethods.get(redisMethods.blackListTokenKey({
-            userId: verifiedToken.sub,
-            tokenId: verifiedToken.jti,
-        }))) {
-            throw new UnauthorizedException("You need to login again.");
-        }
-        const user = await UserRepo.findById({ id: verifiedToken.sub });
-        if (!user) {
-            throw new UnauthorizedException("User not found.");
-        }
-        if (new Date(verifiedToken.iat * 1000) < user.changeCreditTime) {
-            throw new UnauthorizedException("You need to login.");
-        }
+        const { user, verifiedToken } = await tokenService.checkToken(token, expectedTokenType);
         req.user = user;
         req.tokenPayload = verifiedToken;
         next();

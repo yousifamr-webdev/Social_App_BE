@@ -2,10 +2,23 @@ import redisService from "../../DB/Redis/redis.service.js";
 import userRepo from "../../DB/Repo/user.repo.js";
 import s3bucketService from "../../common/S3Bucket/s3bucket.service.js";
 import { BadRequestException } from "./../../common/exceptions/domain.exceptions.js";
+import chatRepo from "../../DB/Repo/chat.repo.js";
+import { ChatTypeEnum } from "../../common/enums/chat.enums.js";
 class UserService {
     _userRepo = userRepo;
     _redisMethods = redisService;
     _s3BucketService = s3bucketService;
+    _chatRepo = chatRepo;
+    async getUserData(user) {
+        await user.populate([{ path: "friends" }]);
+        const groups = await this._chatRepo.find({
+            filter: {
+                participants: { $in: [user._id] },
+                type: ChatTypeEnum.OVM
+            },
+        });
+        return { user, groups };
+    }
     async logout(req) {
         const userId = req.user._id;
         const tokenData = req.tokenPayload;

@@ -6,9 +6,12 @@ import userService from "./user.service.js";
 import { logoutSchema, updateCoverPicsSchema, uploadProfilePicSchema, } from "./user.validation.js";
 import { cloudUpload } from "../../common/multer/multer.config.js";
 import { StorageApproachEnum } from "../../common/enums/multer.enums.js";
+import chatController from "../chat/chat.controller.js";
 const userController = express.Router();
-userController.get("/", authentication(), (req, res) => {
-    return successResponse({ res, msg: "user Page.", data: req.user });
+userController.use("/:userId/chat", chatController);
+userController.get("/", authentication(), async (req, res) => {
+    const result = await userService.getUserData(req.user);
+    return successResponse({ res, msg: "user Page.", data: result });
 });
 userController.post("/upload-profile-pic", authentication(), cloudUpload({
     storageApproach: StorageApproachEnum.Disk,

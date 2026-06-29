@@ -19,13 +19,20 @@ const postSchema = new Schema({
     deletedAt: Date,
 }, {
     timestamps: true,
-    strictQuery: true,
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
 });
 postSchema.pre(["findOne", "find", "countDocuments"], function () {
     const query = this.getQuery();
     if (!query.getSoftDelete) {
         this.setQuery({ ...query, deletedAt: { $exists: false } });
     }
+});
+postSchema.virtual("comments", {
+    localField: "_id",
+    foreignField: "postId",
+    ref: "Comment",
+    justOne: true,
 });
 const postModel = model("Post", postSchema);
 export default postModel;

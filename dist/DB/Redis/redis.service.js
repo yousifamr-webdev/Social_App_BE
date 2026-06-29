@@ -67,5 +67,17 @@ class RedisService {
     async getMemberFCMToken(userId) {
         return await client.sMembers(this.getFCMKey(userId));
     }
+    getSocketIoKey(userId) {
+        return `SocketIoUserIds::${userId}`;
+    }
+    async addSocketIoIdToSet(userId, SocketId) {
+        return await client.sAdd(this.getSocketIoKey(userId), SocketId);
+    }
+    async removeSocketId(userId, SocketId) {
+        return await client.sRem(this.getSocketIoKey(userId), SocketId);
+    }
+    async getMemberSocketIoId(userId) {
+        return await client.sMembers(this.getSocketIoKey(userId));
+    }
 }
 export default new RedisService();
